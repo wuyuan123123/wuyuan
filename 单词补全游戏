@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>单词补全挑战</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 600px;
+        }
+        .score {
+            font-size: 24px;
+            margin: 10px 0;
+            color: #333;
+        }
+        .question {
+            font-size: 28px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .option {
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            text-align: center;
+        }
+        .option:hover {
+            background-color: #e0e0e0;
+        }
+        .timer {
+            font-size: 18px;
+            color: #666;
+            margin: 10px 0;
+        }
+        .result {
+            font-size: 24px;
+            margin: 20px 0;
+            color: #2ecc71;
+        }
+        .wrong {
+            color: #e74c3c;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="score">得分: <span id="score">0</span>/100</div>
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+        <div class="timer" id="timer"></div>
+        <div class="result" id="result"></div>
+        <button id="nextButton" style="display: none;">下一题</button>
+    </div>
+
+    <script>
+        const words = ["father", "mother", "grandfather", "grandmother", "cousin", "sister", "brother", "aunt", "uncle"];
+        let currentScore = 0;
+        let currentQuestionIndex = 0;
+        let currentWord = "";
+        let correctAnswer = "";
+        let timer;
+
+        function startGame() {
+            currentScore = 0;
+            currentQuestionIndex = 0;
+            document.getElementById("score").textContent = currentScore;
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex >= 5) {
+                endGame();
+                return;
+            }
+
+            // 随机选择单词
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            
+            // 随机删除一个字母
+            const randomIndex = Math.floor(Math.random() * currentWord.length);
+            const maskedWord = currentWord.substring(0, randomIndex) + "_" + currentWord.substring(randomIndex + 1);
+            correctAnswer = currentWord[randomIndex];
+
+            // 生成干扰选项
+            const options = generateOptions();
+            
+            // 显示题目
+            document.getElementById("question").textContent = maskedWord;
+            displayOptions(options);
+            
+            // 启动计时器
+            startTimer(15);
+
+            currentQuestionIndex++;
+        }
+
+        function generateOptions() {
+            const options = [];
+            const alphabet = "abcdefghijklmnopqrstuvwxyz".split('');
+            
+            // 确保干扰选项不包含正确答案且不出现在原位置
+            while(options.length < 3) {
+                const randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+                if (randomLetter === correctAnswer) continue;
+                
+                // 检查是否形成有效单词
+                const testWord = currentWord.substring(0, currentWord.indexOf('_')) + randomLetter + currentWord.substring(currentWord.indexOf('_') + 1);
+                if (!words.includes(testWord)) {
+                    options.push(randomLetter);
+                }
+            }
+            
+            // 添加正确答案并打乱顺序
+            options.push(correctAnswer);
+            return shuffleArray(options);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function displayOptions(options) {
+            const optionsContainer = document.getElementById("options");
+            optionsContainer.innerHTML = "";
+            
+            options.forEach(option => {
+                const button = document.createElement("button");
+                button.className = "option";
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedAnswer) {
+            clearTimeout(timer);
+            
+            if (selectedAnswer === correctAnswer) {
+                currentScore += 20;
+                document.getElementById("result").textContent = "正确！+20分";
+                document.getElementById("result").className = "result";
+            } else {
+                document.getElementById("result").textContent = "错误！正确答案是：" + correctAnswer;
+                document.getElementById("result").className = "result wrong";
+            }
+            
+            document.getElementById("score").textContent = currentScore;
+            document.getElementById("nextButton").style.display = "block";
+        }
+
+        function startTimer(seconds) {
+            let timeLeft = seconds;
+            document.getElementById("timer").textContent = `剩余时间: ${timeLeft}秒`;
+            
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById("timer").textContent = `剩余时间: ${timeLeft}秒`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    document.getElementById("result").textContent = "时间到！正确答案是：" + correctAnswer;
+                    document.getElementById("result").className = "result wrong";
+                    document.getElementById("nextButton").style.display = "block";
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            clearInterval(timer);
+            document.getElementById("question").textContent = "游戏结束！最终得分：" + currentScore;
+            document.getElementById("options").innerHTML = "<button onclick='startGame()'>再玩一次</button>";
+            document.getElementById("timer").textContent = "";
+            document.getElementById("result").textContent = "";
+            document.getElementById("nextButton").style.display = "none";
+        }
+
+        // 开始游戏
+        startGame();
+
+        // 下一题按钮
+        document.getElementById("nextButton").onclick = () => {
+            document.getElementById("nextButton").style.display = "none";
+            document.getElementById("result").textContent = "";
+            nextQuestion();
+        };
+    </script>
+</body>
+</html>
